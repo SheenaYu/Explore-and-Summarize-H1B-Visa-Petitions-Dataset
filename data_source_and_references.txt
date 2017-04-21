@@ -1,0 +1,24 @@
+Data Source:
+
+https://www.kaggle.com/nsharan/h-1b-visa
+
+
+
+
+
+References:
+
+1. Exploration Round One by Sharan
+(https://www.kaggle.com/nsharan/d/nsharan/h-1b-visa/exploration-round-one)
+
+2. Udacity Exploratory Data Analysis
+(https://classroom.udacity.com/nanodegrees/nd002/parts/0021345407)
+
+3. Geography Of American Music by Stefan Zapf
+(https://s3.amazonaws.com/udacity-hosted-downloads/ud651/GeographyOfAmericanMusic.html)
+
+4. Bureau of Labor Statistics
+(https://www.bls.gov/oes/current/oes_stru.htm#15-0000)
+
+5. Geographic visualization with R's ggmap - Domino Data Lab blog
+(https://blog.dominodatalab.com/geographic-visualization-with-rs-ggmaps/)
