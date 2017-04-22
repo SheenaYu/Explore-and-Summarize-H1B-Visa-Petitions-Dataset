@@ -23,20 +23,10 @@ and held by international students once they complete college/ higher education
 # Load all of the packages that you end up using in your analysis in this code
 # chunk.
 
-# Notice that the parameter "echo" was set to FALSE for this code chunk. This
-# prevents the code from displaying in the knitted HTML output. You should set
-# echo=FALSE for all code chunks in your file, unless it makes sense for your
-# report to show the code that generated a particular plot.
-
-# The other parameters for "message" and "warning" should also be set to FALSE
-# for other code chunks once you have verified that each plot comes out as you
-# want it to. This will clean up the flow of your report.
-
 library(ggplot2)
 library(ggmap)
 library(dplyr)
 library(tidyr)
-
 library(RColorBrewer)
 library(knitr)
 library(gridExtra)
@@ -100,11 +90,12 @@ The `WORKSITE` variable contains both city and state information, so it's more c
 for me to do more granular analysis if I split `WORKSITE` into `STATE` and `CITY`.
 
 ```{r Transform data, echo=FALSE}
+
 # Split WORKSITE column into two columns: city and state
 h1b <- h1b %>%
     separate(WORKSITE, c("CITY", "STATE"), ", ")
 
-
+# Change variables 'STATE' and 'YEAR' to ordered factors
 h1b$STATE <- factor(h1b$STATE, ordered = TRUE)
 h1b$YEAR <- factor(h1b$YEAR, ordered = TRUE)
 
@@ -123,6 +114,7 @@ glimpse(h1b)
 
 ```{r case_status, echo=FALSE, fig.align='center', fig.width=11, fig.height=5}
 
+# Create a bar chart to show the number of H1B cases in different case statuses
 ggplot(subset(h1b, !is.na(CASE_STATUS)), 
        aes(x = CASE_STATUS, fill = CASE_STATUS)) +
     geom_bar(stat = "count") +
@@ -147,11 +139,11 @@ distribution of H1B visa status, a vast majority of the case status is
 
 ```{r employer_name, echo=FALSE, fig.align='center', fig.width=11, fig.height=5}
 
+# Keep only "CERTIFIED" H1B cases
 certified_h1b <- h1b %>%
     filter(CASE_STATUS == "CERTIFIED")
 
 
-# Top 10 employers who filed the most h1b visa applications
 
 # Function to return the top N employers that have the most H1B workers
 top_N_employers <- function(num_emp) {
@@ -163,7 +155,7 @@ top_N_employers <- function(num_emp) {
 }
 
 
-
+# Bar plot to show the top 10 employers who filed the most h1b visa applications
 ggplot(top_N_employers(10), 
        aes(x = reorder(EMPLOYER_NAME, num_apps), y = num_apps)) +
     geom_bar(stat = "identity", alpha = 0.9, fill = "sky blue", width = 0.7) +
@@ -185,7 +177,6 @@ top 3 companies in this chart are all India information technology companies.
 #### Popular H1B Occupations
 
 ```{r SOC_name, echo=FALSE, fig.align='center', fig.width=11, fig.height=5}
-# Top 10 occupational names 
 
 # Function to return top N occupations that have the most H1B applicants
 top_N_SOC <- function(num) {
@@ -197,7 +188,7 @@ top_N_SOC <- function(num) {
         slice(1:num)
 }
 
-
+# Bar plot to show the top 10 H1B occupations 
 ggplot(top_N_SOC(10), 
        aes(x = reorder(SOC_NAME, num_apps), y = num_apps)) +
     geom_bar(stat = "identity", alpha = 0.9, fill = "orange", width = 0.7) +
@@ -227,6 +218,7 @@ via this [link](https://www.onetonline.org/find/).
 
 ```{r full_time_position, echo=FALSE, fig.align='center', fig.width=11, fig.height=5}
 
+# Summarize full-time and non full-time positions
 full_time_pos <- certified_h1b %>%
     filter(!is.na(FULL_TIME_POSITION)) %>%
     group_by(FULL_TIME_POSITION) %>%
@@ -234,7 +226,7 @@ full_time_pos <- certified_h1b %>%
     mutate(rel_freq = paste0(round(100 * n/sum(n), 2), "%"),
            pos = cumsum(n) - n/2)
 
-
+# Pie chart showing proportion of full-time and non full-time jobs
 ggplot(full_time_pos, 
        aes(x = factor(1), y = n, fill = factor(FULL_TIME_POSITION, levels = c("Y", "N")))) + 
     geom_bar(width = 1, stat = "identity", color = "grey") +
@@ -255,10 +247,13 @@ jobs. 85.8% of the total H1B visa applicants have full-time jobs, while the rema
 #### Distribution of Prevailing Wage
 
 ```{r wage_distribution, echo=FALSE, fig.align='center', fig.width=11, fig.height=5}
+
+# Generate a sample of wages and filter out NA values
 set.seed(123)
 wage_sample <- subset(certified_h1b[sample(1:nrow(certified_h1b), 300000), 7], 
                       !is.na(PREVAILING_WAGE))
 
+# Histogram of sampled wages
 ggplot(subset(wage_sample, 
               PREVAILING_WAGE >= quantile(PREVAILING_WAGE, 0.1) & 
                   PREVAILING_WAGE <= quantile(PREVAILING_WAGE, 0.95)), 
@@ -295,6 +290,7 @@ This chart include all the data from 2011 to 2016.
 
 ```{r petitions_by_state, echo=FALSE, fig.align='center', fig.width=11}
 
+# Import state data containing state abbreviations and locations
 data(state)
 states <- data.frame(state.abb, state.name, state.area, state.center,
                      state.division, state.region, state.x77)
@@ -304,6 +300,8 @@ states <- states %>%
     select(state.abb, state.name, x, y, Population, Income, Illiteracy)
 states <- subset(states, ! state.abb %in% c("HI", "AK"))
 
+
+# Count H1B petitions filed by each state
 petition_by_state <- certified_h1b %>%
     filter(STATE != "NA") %>%
     group_by(region = tolower(STATE)) %>%
@@ -311,7 +309,7 @@ petition_by_state <- certified_h1b %>%
     arrange(desc(no_petitions))
 
 
-
+# Draw the map
 us_states <- map_data("state")
 
 petition_by_state <- inner_join(petition_by_state, us_states, by = "region")
@@ -426,11 +424,12 @@ means that he/she is eligible to file an H1B.
 
 ```{r echo=FALSE, fig.width=8}
 
+# Count H1B petitions filed in each year
 case_quantity_per_year <- certified_h1b %>%
     group_by(YEAR) %>%
     summarise(all_occupations = n())
 
-
+# Bar plot showing the H1B quantities in each year
 ggplot(case_quantity_per_year, aes(y = all_occupations, x = YEAR, fill = YEAR)) + 
       geom_bar(stat = "identity", alpha = 0.7, width = 0.5) + 
       scale_y_continuous(limits = c(0, 570000), 
@@ -450,12 +449,15 @@ ggplot(case_quantity_per_year, aes(y = all_occupations, x = YEAR, fill = YEAR)) 
 #### Comparison of H1B petitions between California, New York and Texas
 
 ```{r echo=FALSE, fig.width=8}
+
+# Count H1B petitions filed in CA, NY and TX in each year
 cnt_case_per_year <- certified_h1b %>%
     filter(STATE %in% c("CALIFORNIA", "NEW YORK", "TEXAS")) %>%
     group_by(YEAR, STATE) %>%
     summarise(count = n()) %>%
     arrange(YEAR, STATE) 
 
+# Bar plot showing H1B quantities of each state in each year
 ggplot(cnt_case_per_year, aes(x = YEAR, y = count, fill = STATE)) +
     geom_bar(stat = "identity", position = position_dodge(), alpha = 0.8,
              color = "grey") +
@@ -465,6 +467,8 @@ ggplot(cnt_case_per_year, aes(x = YEAR, y = count, fill = STATE)) +
 ```
 
 ```{r echo=FALSE}
+
+# Display the table with specific numbers
 cnt_case_per_year <- cnt_case_per_year %>%
     spread(key = STATE, value = count)
 
@@ -475,7 +479,7 @@ knitr::kable(cnt_case_per_year)
 #### Prevailing wages of top 10 employers
 
 ```{r echo=FALSE, fig.align='center', fig.width=9, fig.height=5}
-
+# Top 10 employers who filed the most H1B petitions
 top_10_employers <- certified_h1b %>%
         group_by(EMPLOYER_NAME) %>%
         summarise(num_apps = n()) %>%
@@ -486,7 +490,7 @@ top_10_employers <- certified_h1b %>%
 employers_boxplot_df <- certified_h1b %>%
     filter(EMPLOYER_NAME %in% top_10_employers$EMPLOYER_NAME)
 
-
+# Boxplot showing the wage distribution of each employer
 ggplot(employers_boxplot_df, aes(y = PREVAILING_WAGE, x = EMPLOYER_NAME, 
                                  fill = EMPLOYER_NAME, notch = TRUE, notchwidth = .3)) + 
       geom_boxplot(notch = TRUE) + 
@@ -516,6 +520,8 @@ From the boxplot we can see that the median wage of Microsoft exceed all the oth
 #### Top 10 occupations with highest median prevailing wages
 
 ```{r echo=FALSE, fig.align='center', fig.width=11, fig.height=5}
+
+# Top 10 occupations with the highest wages
 top_10_soc_with_highest_wage <- certified_h1b %>%
         group_by(SOC_NAME) %>%
         summarise(median_wage = median(PREVAILING_WAGE)) %>%
@@ -523,7 +529,7 @@ top_10_soc_with_highest_wage <- certified_h1b %>%
         slice(1:10) %>%
         select(SOC_NAME, median_wage)
 
-
+# Bar plot showing median wages for each occupation
 ggplot(top_10_soc_with_highest_wage, aes(y = median_wage, x = reorder(SOC_NAME, median_wage))) + 
       geom_bar(stat = "identity", fill = "blue", alpha = 0.7, width = 0.7) + 
       #scale_y_continuous(limits = c(0, 150000), 
@@ -588,10 +594,12 @@ wages for certified cases are greater than those of denied cases respectively.
 
 ```{r echo=FALSE, fig.height=7, fig.width=10}
 
+# Randomly sample one tenth of total H1B petitions, excluding Null values in wages
 wage_year_sample <- subset(certified_h1b[sample(1:nrow(certified_h1b), 300000), c(7, 8)], 
                       !is.na(PREVAILING_WAGE) & 
                           PREVAILING_WAGE <= quantile(certified_h1b$PREVAILING_WAGE, 0.99))
 
+# Histograms of wages in each year
 wage_dist_per_year <- ggplot(subset(wage_year_sample, 
               PREVAILING_WAGE >= quantile(PREVAILING_WAGE, 0.1) & 
                   PREVAILING_WAGE <= quantile(PREVAILING_WAGE, 0.95)), 
@@ -643,11 +651,11 @@ wage_year_stats <- wage_year_stats[order(wage_year_stats$YEAR),
                                      1:(ncol(wage_year_stats) - 1))]
     
 # From wide to long format
-
 wage_year_stats_long <- gather(wage_year_stats, statistics, values, 
                                mean_wage:`90th_percentile`,
                                factor_key = TRUE)
 
+# Trend of median, mean, 10th percentile and 90th percentile of wages
 wage_trend <- ggplot(wage_year_stats_long, 
                      aes(x = YEAR, y = values, group = statistics)) +
     geom_line(aes(color = statistics), lineend = "round", size = 1) +
@@ -785,7 +793,6 @@ is far ahead than any other cities.
 ```{r echo=FALSE, fig.width=8}
 
 # Computer and Mathematical Occupations 
-
 cmo <- c("COMPUTER AND INFORMATION RESEARCH SCIENTISTS",
          "COMPUTER SYSTEMS ANALYSTS", "INFORMATION SECURITY ANALYSTS",
          "COMPUTER PROGRAMMERS", "SOFTWARE DEVELOPERS, APPLICATIONS",
@@ -821,7 +828,8 @@ multi_df1 <- multi_df1 %>%
 
 multi_df1 <- gather(multi_df1, occupation, count, cm_occupations:other_occupations)
     
-    
+# Stacked bar plot showing the proportions of computer and 
+# mathematical occupations over years
 ggplot(multi_df1,
        aes(x = YEAR, y = count, fill = occupation)) +
     geom_bar(stat = "identity") +
@@ -848,12 +856,16 @@ computer-related skills has been growing year by year.
 
 ```{r echo=FALSE, fig.width=9}
 
+# Create a catagorical variable to seperate computer and mathematical occupations
+# from other occupations
 multi_df2 <- certified_h1b %>%
     filter(!is.na(PREVAILING_WAGE)) %>%
     mutate(occupation_catagory = if_else(SOC_NAME %in% cmo, 
                                          "cm_occupations", "other_occupations")) %>%
     select(YEAR, occupation_catagory, PREVAILING_WAGE)
 
+# Boxplot showing the distribution of wages for computer and mathematical 
+# occupations and wages for other occupations
 cmo_boxplot <- ggplot(multi_df2, aes(x=occupation_catagory, y= PREVAILING_WAGE)) +
     geom_boxplot(aes(fill=YEAR)) + xlab("Occupation Catagory") + ylab("Wage (USD)") +
     ggtitle("Wages of Computer/Mathematical Occupations and Other Occupations") +
